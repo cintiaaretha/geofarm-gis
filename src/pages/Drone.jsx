@@ -81,7 +81,7 @@ const Drone = () => {
                 <div>
                   <p className="font-medium text-slate-700">{d.id} &middot; {d.model}</p>
                   <p className="text-xs text-slate-400 flex items-center gap-1">
-                    <MapPin size={12} /> Sleman, DIY
+                    <MapPin size={12} /> Indramayu, Jawa Barat
                   </p>
                 </div>
               </div>

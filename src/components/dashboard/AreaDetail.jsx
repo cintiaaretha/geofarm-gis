@@ -1,8 +1,20 @@
-import { MapPin, Sprout, Ruler, Activity, Droplets } from "lucide-react";
+import {
+  MapPin,
+  Sprout,
+  Ruler,
+  Activity,
+  Droplets,
+  Thermometer,
+} from "lucide-react";
+
 import { useAppState } from "../../context/useAppState";
 
 const AreaDetail = () => {
-  const { selectedArea, activePeriod, periods } = useAppState();
+  const {
+    selectedArea,
+    activePeriod,
+    periods,
+  } = useAppState();
 
   if (!selectedArea) {
     return (
@@ -10,71 +22,154 @@ const AreaDetail = () => {
         <h2 className="mb-5 text-xl font-semibold">
           Detail Area
         </h2>
-
         <div className="flex h-[350px] items-center justify-center text-center text-slate-400">
-          Pilih salah satu petak sawah
-          <br />
-          untuk melihat informasi.
+          <div>
+            <p>Pilih salah satu petak sawah</p>
+            <p>untuk melihat informasi.</p>
+          </div>
         </div>
       </div>
     );
   }
 
+  const periodLabel =
+    periods?.find(
+      (period) => period.id === activePeriod
+    )?.label || "Saat ini";
+
+  const statusStyle = {
+    Baik: "bg-green-100 text-green-700",
+    "Perlu Perhatian":
+      "bg-yellow-100 text-yellow-700",
+    Prioritas: "bg-red-100 text-red-700",
+  };
+
   return (
-    <div className="h-[450px] rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-
-      <h2 className="text-xl font-semibold">
-        {selectedArea.name}
-      </h2>
-
-      <p className="mb-6 text-sm text-slate-500">
-        Informasi Lahan &middot; {periods.find((p) => p.id === activePeriod)?.label}
-      </p>
-
-      <div className="space-y-5">
-
-        <div className="flex items-center gap-3">
-          <MapPin className="text-green-600" />
-          <div>
-            <p className="text-xs text-slate-500">Status</p>
-            <h4>{selectedArea.status}</h4>
-          </div>
+    <div className="h-[450px] overflow-y-auto rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+      {/* Header */}
+      <div className="mb-6">
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="text-xl font-semibold">
+            {selectedArea.name}
+          </h2>
+          <span
+            className={`rounded-full px-3 py-1 text-xs font-semibold ${
+              statusStyle[selectedArea.status] ||
+              "bg-slate-100 text-slate-600"
+            }`}
+          >
+            {selectedArea.status}
+          </span>
         </div>
-
-        <div className="flex items-center gap-3">
-          <Ruler className="text-green-600" />
-          <div>
-            <p className="text-xs text-slate-500">Luas</p>
-            <h4>{selectedArea.area}</h4>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-3">
-          <Sprout className="text-green-600" />
-          <div>
-            <p className="text-xs text-slate-500">NDVI</p>
-            <h4>{selectedArea.ndvi}</h4>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-3">
-          <Droplets className="text-green-600" />
-          <div>
-            <p className="text-xs text-slate-500">Kelembapan</p>
-            <h4>{selectedArea.moisture}</h4>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-3">
-          <Activity className="text-green-600" />
-          <div>
-            <p className="text-xs text-slate-500">Rekomendasi</p>
-            <h4>{selectedArea.recommendation}</h4>
-          </div>
-        </div>
-
+        <p className="mt-1 text-sm text-slate-500">
+          Informasi Lahan &middot; {periodLabel}
+        </p>
       </div>
 
+      {/* Informasi utama */}
+      <div className="space-y-4">
+        {/* Luas */}
+        <div className="flex items-center gap-3">
+          <Ruler
+            size={20}
+            className="text-green-600"
+          />
+          <div>
+            <p className="text-xs text-slate-500">
+              Luas Lahan
+            </p>
+            <p className="font-medium">
+              {selectedArea.area}
+            </p>
+          </div>
+        </div>
+
+        {/* Komoditas */}
+        <div className="flex items-center gap-3">
+          <Sprout
+            size={20}
+            className="text-green-600"
+          />
+          <div>
+            <p className="text-xs text-slate-500">
+              Komoditas
+            </p>
+            <p className="font-medium">
+              {selectedArea.crop}
+            </p>
+          </div>
+        </div>
+
+        {/* NDVI */}
+        <div className="flex items-center gap-3">
+          <Activity
+            size={20}
+            className="text-green-600"
+          />
+          <div>
+            <p className="text-xs text-slate-500">
+              NDVI
+            </p>
+            <p className="font-medium">
+              {selectedArea.ndvi}
+            </p>
+          </div>
+        </div>
+
+        {/* Kelembapan */}
+        <div className="flex items-center gap-3">
+          <Droplets
+            size={20}
+            className="text-blue-500"
+          />
+          <div>
+            <p className="text-xs text-slate-500">
+              Kelembapan Tanah
+            </p>
+            <p className="font-medium">
+              {selectedArea.moisture}
+            </p>
+          </div>
+        </div>
+
+        {/* Suhu */}
+        <div className="flex items-center gap-3">
+          <Thermometer
+            size={20}
+            className="text-orange-500"
+          />
+          <div>
+            <p className="text-xs text-slate-500">
+              Suhu
+            </p>
+            <p className="font-medium">
+              {selectedArea.temperature}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Rekomendasi */}
+      <div className="mt-6 rounded-xl bg-slate-50 p-4">
+        <div className="mb-2 flex items-center gap-2">
+          <MapPin
+            size={18}
+            className="text-green-600"
+          />
+          <h3 className="text-sm font-semibold">
+            Rekomendasi
+          </h3>
+        </div>
+        <p className="text-sm leading-relaxed text-slate-600">
+          {selectedArea.recommendation}
+        </p>
+      </div>
+
+      {/* Last Scan */}
+      <p className="mt-4 text-xs text-slate-400">
+        Pemindaian terakhir:{" "}
+        {selectedArea.lastScan}
+      </p>
     </div>
   );
 };
