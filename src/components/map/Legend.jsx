@@ -13,24 +13,26 @@ const Legend = () => {
           ? "Kelembapan Tanah"
           : isNDVI
           ? "Indeks Vegetasi (NDVI)"
-          : "Status Lahan"}
+          : "Kondisi Lahan"}
       </h3>
 
       <div className="space-y-2 text-sm">
+        {/* MERAH */}
         <div className="flex items-center gap-2">
-          <div className="h-4 w-4 rounded bg-red-500"></div>
+          <div className="h-4 w-4 rounded bg-red-500" />
 
           <span>
             {isMoisture
               ? "< 40%  Kering"
               : isNDVI
-              ? "< 0.30  Buruk"
+              ? "< 0.30  Rendah"
               : "Prioritas"}
           </span>
         </div>
 
+        {/* KUNING */}
         <div className="flex items-center gap-2">
-          <div className="h-4 w-4 rounded bg-yellow-400"></div>
+          <div className="h-4 w-4 rounded bg-yellow-400" />
 
           <span>
             {isMoisture
@@ -41,8 +43,9 @@ const Legend = () => {
           </span>
         </div>
 
+        {/* HIJAU */}
         <div className="flex items-center gap-2">
-          <div className="h-4 w-4 rounded bg-green-500"></div>
+          <div className="h-4 w-4 rounded bg-green-500" />
 
           <span>
             {isMoisture
