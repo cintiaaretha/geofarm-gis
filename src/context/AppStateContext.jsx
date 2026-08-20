@@ -1,6 +1,7 @@
 import { useState, useCallback } from "react";
 
 import { AppStateContext } from "./appStateContext.js";
+import { sampleFarmland } from "../data/farmlandData.js";
 
 export const AppStateProvider = ({ children }) => {
   // =========================================================
@@ -75,7 +76,7 @@ export const AppStateProvider = ({ children }) => {
   // =========================================================
 
   const [farmland, setFarmland] =
-    useState([]);
+    useState(sampleFarmland);
 
   // =========================================================
   // STATUS DRONE
