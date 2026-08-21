@@ -21,7 +21,7 @@ const Dashboard = () => {
     <div className="space-y-6">
 
       {/* Statistik */}
-      <div className="grid grid-cols-4 gap-5">
+      <div className="grid grid-cols-2 gap-4 sm:gap-5 lg:grid-cols-4">
         <StatisticCard
           title="Luas Lahan"
           value={`${totalArea} Ha`}
@@ -51,7 +51,7 @@ const Dashboard = () => {
       <PeriodSelector />
 
       {/* Map */}
-      <div className="grid grid-cols-4 gap-5">
+      <div className="grid grid-cols-2 gap-4 sm:gap-5 lg:grid-cols-4">
 
         <div className="col-span-3">
           <MapSection />
@@ -65,7 +65,7 @@ const Dashboard = () => {
       <QuickActions />
 
       {/* Analytics */}
-      <div className="grid grid-cols-4 gap-5">
+      <div className="grid grid-cols-2 gap-4 sm:gap-5 lg:grid-cols-4">
 
         <div className="col-span-2">
           <ChartSection

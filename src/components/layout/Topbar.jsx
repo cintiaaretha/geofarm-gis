@@ -5,6 +5,7 @@ import {
   UserCircle2,
   AlertTriangle,
   Info,
+  Menu,
 } from "lucide-react";
 
 import { useAppState } from "../../context/useAppState";
@@ -17,7 +18,7 @@ const pageSubtitle = {
   Settings: "Preferensi akun & sistem",
 };
 
-const Topbar = () => {
+const Topbar = ({ onMenuClick = () => {} }) => {
   const {
     activePage,
     farmland,
@@ -52,26 +53,35 @@ const Topbar = () => {
   };
 
   return (
-    <header className="relative flex h-20 items-center justify-between bg-white px-6 shadow-sm">
+    <header className="relative flex h-auto min-h-20 flex-wrap items-center justify-between gap-3 border border-slate-200 bg-white px-4 py-3 shadow-sm sm:px-6">
 
       {/* Judul */}
-      <div>
-        <h1 className="text-2xl font-bold text-slate-800">
-          {activePage}
-        </h1>
+      <div className="flex min-w-0 items-center gap-3">
+        <button
+          onClick={onMenuClick}
+          className="shrink-0 rounded-xl border border-slate-200 p-2.5 hover:bg-slate-100 lg:hidden"
+        >
+          <Menu size={20} />
+        </button>
 
-        <p className="text-sm text-slate-500">
-          {pageSubtitle[activePage] || "GeoFarm GIS Monitoring System"}
-        </p>
+        <div className="min-w-0">
+          <h1 className="truncate text-xl font-bold text-slate-800 sm:text-2xl">
+            {activePage}
+          </h1>
+
+          <p className="hidden truncate text-sm text-slate-500 sm:block">
+            {pageSubtitle[activePage] || "GeoFarm GIS Monitoring System"}
+          </p>
+        </div>
       </div>
 
       {/* Kanan */}
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-2 sm:gap-4">
 
         {/* Search */}
         <div className="relative">
-          <div className="flex items-center gap-2 rounded-xl border border-slate-200 px-4 py-2">
-            <Search size={18} className="text-slate-500" />
+          <div className="flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 sm:px-4">
+            <Search size={18} className="shrink-0 text-slate-500" />
 
             <input
               type="text"
@@ -82,8 +92,8 @@ const Topbar = () => {
               }}
               onFocus={() => setShowResults(true)}
               onBlur={() => setTimeout(() => setShowResults(false), 150)}
-              placeholder="Cari lokasi / blok lahan..."
-              className="bg-transparent outline-none"
+              placeholder="Cari lahan..."
+              className="w-20 bg-transparent outline-none sm:w-48"
             />
           </div>
 
