@@ -1,9 +1,11 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   MapContainer,
   TileLayer,
   Marker,
   Popup,
+  Polygon,
+  Polyline,
   GeoJSON,
 } from "react-leaflet";
 import L from "leaflet";
@@ -15,6 +17,11 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { Plane } from "lucide-react";
 
 import { useAppState } from "../../context/useAppState";
+import {
+  farmlandToFeature,
+  farmlandDefaultView,
+  polygonCentroid,
+} from "../../utils/geo";
 
 import Legend from "../map/Legend";
 import MapToolbar from "../map/MapToolbar";
@@ -66,10 +73,6 @@ const createDroneIcon = (color) =>
 // CONSTANTS
 // =========================================================
 
-const DEFAULT_CENTER = [0, 0];
-
-const DEFAULT_ZOOM = 2;
-
 const TILE_URLS = {
   imagery: {
     url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
@@ -83,6 +86,12 @@ const TILE_URLS = {
     attribution: "&copy; OpenStreetMap contributors",
   },
 };
+
+// Lama waktu terbang antar titik (ms). Jalur dibangun dinamis dari
+// titik tengah tiap blok lahan (lihat droneWaypoints di bawah),
+// bukan koordinat hardcode -- supaya drone selalu menyusuri semua
+// blok yang ada di data/farmland.js.
+const DRONE_SEGMENT_DURATION_MS = 2200;
 
 // =========================================================
 // COMPONENT
@@ -119,7 +128,6 @@ const MapSection = () => {
     imageryReady,
     setImageryReady,
 
-    imageryBounds,
     setImageryBounds,
 
     imageryProjection,
@@ -131,7 +139,29 @@ const MapSection = () => {
 
     geoJsonData,
     setGeoJsonData,
+
+    // -------------------------------------------------------
+    // FARMLAND (default)
+    // -------------------------------------------------------
+
+    farmland,
   } = useAppState();
+
+  // =======================================================
+  // DEFAULT VIEW
+  // =======================================================
+  // Dihitung dari titik tengah seluruh petak di data/farmland.js
+  // supaya peta langsung fokus ke area lahan, bukan [0, 0].
+  // =======================================================
+
+  const DEFAULT_VIEW = useMemo(
+    () => farmlandDefaultView(farmland),
+    [farmland]
+  );
+
+  const DEFAULT_CENTER = DEFAULT_VIEW.center;
+
+  const DEFAULT_ZOOM = DEFAULT_VIEW.zoom;
 
   // =======================================================
   // LOCAL STATE
@@ -140,13 +170,41 @@ const MapSection = () => {
   const [geoRaster, setGeoRaster] = useState(null);
 
   const [mapCenter, setMapCenter] =
-    useState(DEFAULT_CENTER);
+    useState(DEFAULT_VIEW.center);
 
   const [mapZoom, setMapZoom] =
-    useState(DEFAULT_ZOOM);
+    useState(DEFAULT_VIEW.zoom);
 
   const [focusToken, setFocusToken] =
     useState(0);
+
+  // =======================================================
+  // BATAS LAHAN DEFAULT (public/map.geojson)
+  // =======================================================
+  // Dipakai sebagai garis batas keseluruhan area GeoFarm saat
+  // user belum mengunggah GeoJSON sendiri.
+  // =======================================================
+
+  const [defaultBoundary, setDefaultBoundary] = useState(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    fetch("/map.geojson")
+      .then((response) => response.json())
+      .then((data) => {
+        if (!cancelled) {
+          setDefaultBoundary(data);
+        }
+      })
+      .catch((error) => {
+        console.error("Gagal memuat batas lahan default:", error);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // =======================================================
   // LOAD FILE
@@ -416,6 +474,10 @@ const MapSection = () => {
     return () => {
       cancelled = true;
     };
+    // DEFAULT_CENTER/DEFAULT_ZOOM sengaja tidak dimasukkan ke deps supaya
+    // efek ini cuma jalan saat file citra berganti, bukan tiap kali
+    // periode/farmland berubah.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     droneImagery?.file,
     setDroneImagery,
@@ -426,44 +488,108 @@ const MapSection = () => {
   ]);
 
   // =======================================================
-  // UPDATE DRONE POSITION
+  // JALUR TERBANG DRONE
+  // =======================================================
+  //
+  // Dibangun dari titik tengah (centroid) tiap blok lahan di
+  // data/farmland.js, mengikuti urutan blok (Blok A -> F),
+  // lalu kembali ke titik awal. Dengan ini drone selalu
+  // menyusuri SEMUA blok yang ada dan otomatis menyesuaikan
+  // kalau data blok berubah -- bukan koordinat hardcode.
   // =======================================================
 
-  const dronePosition = useMemo(() => {
-    if (
-      !droneFlying ||
-      !imageryBounds
-    ) {
-      return null;
+  const droneWaypoints = useMemo(() => {
+    const centroids = farmland
+      .filter(
+        (field) =>
+          field.coordinates &&
+          field.coordinates.length >= 3
+      )
+      .map((field) =>
+        polygonCentroid(field.coordinates)
+      );
+
+    if (centroids.length === 0) {
+      return [DEFAULT_CENTER, DEFAULT_CENTER];
     }
 
-    const {
-      xmin,
-      xmax,
-      ymin,
-      ymax,
-    } = imageryBounds;
-
-    if (
-      typeof xmin !== "number" ||
-      typeof xmax !== "number" ||
-      typeof ymin !== "number" ||
-      typeof ymax !== "number"
-    ) {
-      return null;
+    if (centroids.length === 1) {
+      return [centroids[0], centroids[0]];
     }
 
-    const centerLat =
-      (ymin + ymax) / 2;
+    // Tutup jalurnya: balik lagi ke titik awal
+    return [...centroids, centroids[0]];
+  }, [farmland, DEFAULT_CENTER]);
 
-    const centerLng =
-      (xmin + xmax) / 2;
+  const [dronePosition, setDronePosition] = useState(
+    droneWaypoints[0]
+  );
 
-    return [centerLat, centerLng];
-  }, [
-    droneFlying,
-    imageryBounds,
-  ]);
+  const animationFrameRef = useRef(null);
+
+  useEffect(() => {
+    if (!droneFlying) {
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(
+          animationFrameRef.current
+        );
+        animationFrameRef.current = null;
+      }
+
+      // Drone berhenti -> kembali ke home point
+      queueMicrotask(() =>
+        setDronePosition(droneWaypoints[0])
+      );
+
+      return;
+    }
+
+    let segmentIndex = 0;
+    let segmentStart = performance.now();
+
+    const step = (now) => {
+      const from =
+        droneWaypoints[segmentIndex];
+      const to =
+        droneWaypoints[
+          (segmentIndex + 1) %
+            droneWaypoints.length
+        ];
+
+      const elapsed = now - segmentStart;
+      const progress = Math.min(
+        elapsed / DRONE_SEGMENT_DURATION_MS,
+        1
+      );
+
+      setDronePosition([
+        from[0] + (to[0] - from[0]) * progress,
+        from[1] + (to[1] - from[1]) * progress,
+      ]);
+
+      if (progress >= 1) {
+        segmentIndex =
+          (segmentIndex + 1) %
+          droneWaypoints.length;
+        segmentStart = now;
+      }
+
+      animationFrameRef.current =
+        requestAnimationFrame(step);
+    };
+
+    animationFrameRef.current =
+      requestAnimationFrame(step);
+
+    return () => {
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(
+          animationFrameRef.current
+        );
+        animationFrameRef.current = null;
+      }
+    };
+  }, [droneFlying, droneWaypoints]);
 
   // =======================================================
   // TILE
@@ -498,6 +624,34 @@ const MapSection = () => {
     fillColor: "transparent",
     fillOpacity: 0,
   };
+
+  // =======================================================
+  // STYLE BATAS LAHAN DEFAULT (map.geojson)
+  // =======================================================
+
+  const boundaryStyle = {
+    color: "#0F766E",
+    weight: 2,
+    dashArray: "6 5",
+    fillOpacity: 0,
+  };
+
+  // =======================================================
+  // STYLE POLYGON PETAK LAHAN (data/farmland.js)
+  // =======================================================
+
+  const fillOpacityByLayer =
+    activeLayer === "NDVI" ||
+    activeLayer === "Kelembapan"
+      ? 0.55
+      : 0.28;
+
+  const farmlandStyle = (field) => ({
+    color: field.color,
+    weight: 2,
+    fillColor: field.color,
+    fillOpacity: fillOpacityByLayer,
+  });
 
   // =======================================================
   // GEOJSON INTERACTION
@@ -639,7 +793,7 @@ const MapSection = () => {
           )}
 
         {/* =================================================
-            GEOJSON
+            GEOJSON HASIL UPLOAD USER
         ================================================= */}
 
         {geoJsonData && (
@@ -654,6 +808,55 @@ const MapSection = () => {
             }
           />
         )}
+
+        {/* =================================================
+            BATAS LAHAN DEFAULT (public/map.geojson)
+            Hanya tampil selama user belum upload GeoJSON sendiri.
+        ================================================= */}
+
+        {!geoJsonData && defaultBoundary && (
+          <GeoJSON
+            key="default-boundary"
+            data={defaultBoundary}
+            style={boundaryStyle}
+          />
+        )}
+
+        {/* =================================================
+            PETAK LAHAN DEFAULT (data/farmland.js)
+            Hanya tampil selama user belum upload GeoJSON sendiri.
+        ================================================= */}
+
+        {!geoJsonData &&
+          farmland.map((field) => (
+            <Polygon
+              key={field.id}
+              positions={field.coordinates}
+              pathOptions={farmlandStyle(field)}
+              eventHandlers={{
+                mouseover: (event) => {
+                  event.target.setStyle({ weight: 3 });
+                },
+                mouseout: (event) => {
+                  event.target.setStyle({ weight: 2 });
+                },
+                click: () => {
+                  setSelectedArea(farmlandToFeature(field));
+                },
+              }}
+            >
+              <Popup>
+                <div className="space-y-1">
+                  <h3 className="font-semibold">{field.name}</h3>
+                  <p>Status: {field.status}</p>
+                  <p>Komoditas: {field.crop}</p>
+                  <p>Luas: {field.area}</p>
+                  <p>NDVI: {field.ndvi}</p>
+                  <p>Kelembapan: {field.moisture}</p>
+                </div>
+              </Popup>
+            </Polygon>
+          ))}
 
         {/* =================================================
             MAP CONTROLLER
@@ -674,54 +877,68 @@ const MapSection = () => {
         />
 
         {/* =================================================
+            JALUR TERBANG DRONE
+        ================================================= */}
+
+        {droneFlying && (
+          <Polyline
+            positions={droneWaypoints}
+            pathOptions={{
+              color: "#16A34A",
+              weight: 2,
+              opacity: 0.75,
+              dashArray: "6 6",
+            }}
+          />
+        )}
+
+        {/* =================================================
             DRONE MARKER
         ================================================= */}
 
-        {dronePosition && (
-          <Marker
-            position={
-              dronePosition
-            }
-            icon={droneIcon}
-          >
-            <Popup>
-              <div className="space-y-1">
+        <Marker
+          position={
+            dronePosition
+          }
+          icon={droneIcon}
+        >
+          <Popup>
+            <div className="space-y-1">
 
-                <h3 className="font-semibold">
-                  Drone DJI Phantom 4 RTK
-                </h3>
+              <h3 className="font-semibold">
+                Drone DJI Phantom 4 RTK
+              </h3>
 
-                <p>
-                  Status:{" "}
-                  {droneFlying
-                    ? "Sedang Memetakan"
-                    : "Standby"}
-                </p>
+              <p>
+                Status:{" "}
+                {droneFlying
+                  ? "Sedang Memetakan"
+                  : "Standby"}
+              </p>
 
-                <p>
-                  Ketinggian: 120 meter
-                </p>
+              <p>
+                Ketinggian: 120 meter
+              </p>
 
-                <p>
-                  Baterai: 86%
-                </p>
+              <p>
+                Baterai: 86%
+              </p>
 
-                <p>
-                  Kecepatan:{" "}
-                  {droneFlying
-                    ? "24 km/jam"
-                    : "0 km/jam"}
-                </p>
+              <p>
+                Kecepatan:{" "}
+                {droneFlying
+                  ? "24 km/jam"
+                  : "0 km/jam"}
+              </p>
 
-                <p className="text-xs text-slate-400">
-                  Posisi visual mengikuti
-                  area citra yang diunggah.
-                </p>
+              <p className="text-xs text-slate-400">
+                Jalur mengikuti titik tengah
+                tiap blok lahan (Blok A-F).
+              </p>
 
-              </div>
-            </Popup>
-          </Marker>
-        )}
+            </div>
+          </Popup>
+        </Marker>
 
       </MapContainer>
 
