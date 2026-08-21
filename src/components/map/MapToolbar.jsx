@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 
 import { useAppState } from "../../context/useAppState";
+import { farmlandToFeature } from "../../utils/geo";
 
 const MapToolbar = ({ onResetView }) => {
   const {
@@ -56,7 +57,7 @@ const MapToolbar = ({ onResetView }) => {
                 <button
                   key={f.id}
                   onMouseDown={() => {
-                    setSelectedArea(f);
+                    setSelectedArea(farmlandToFeature(f));
                     setQuery("");
                     setShowResults(false);
                   }}
