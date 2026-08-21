@@ -31,13 +31,11 @@ const LayerControl = () => {
           const isDroneLayer =
             layer === "Drone Imagery";
 
-          const isAnalysisLayer =
-            layer === "NDVI" ||
-            layer === "Kelembapan";
-
+          // NDVI & Kelembapan selalu tersedia karena sudah ada
+          // data default per blok di data/farmland.js. Hanya
+          // "Drone Imagery" (raster asli) yang butuh file diunggah.
           const disabled =
-            (isDroneLayer && !imageryReady) ||
-            (isAnalysisLayer && !imageryReady);
+            isDroneLayer && !imageryReady;
 
           return (
             <button
@@ -85,17 +83,13 @@ const LayerControl = () => {
         {activeLayer === "Drone Imagery" &&
           (imageryReady
             ? `Menampilkan citra udara dari ${droneImagery?.fileName || "file yang diunggah"}.`
-            : "Upload citra udara terlebih dahulu untuk menampilkan imagery drone.")}
+            : "Upload citra udara (GeoTIFF/GeoJSON) terlebih dahulu untuk menampilkan imagery drone.")}
 
         {activeLayer === "NDVI" &&
-          (imageryReady
-            ? "Menampilkan hasil analisis kondisi vegetasi berdasarkan data citra yang diunggah."
-            : "Layer tersedia setelah citra udara berhasil diproses.")}
+          "Blok lahan diwarnai berdasarkan nilai NDVI (indeks vegetasi): merah = rendah, kuning = sedang, hijau = baik. Data dari hasil pemantauan tiap blok, diperbarui otomatis jika citra udara diunggah."}
 
         {activeLayer === "Kelembapan" &&
-          (imageryReady
-            ? "Menampilkan hasil analisis kondisi kelembapan lahan berdasarkan data citra."
-            : "Layer tersedia setelah citra udara berhasil diproses.")}
+          "Blok lahan diwarnai berdasarkan tingkat kelembapan tanah: merah = kering, kuning = sedang, hijau = baik. Data dari hasil pemantauan tiap blok, diperbarui otomatis jika citra udara diunggah."}
       </p>
     </div>
   );

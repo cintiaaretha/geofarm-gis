@@ -15,17 +15,40 @@ export const polygonCentroid = (coordinates) => {
 };
 
 
-// Warna berdasarkan tingkat kelembapan tanah
-export const moistureColor = (moistureStr) => {
-  const value = parseInt(moistureStr, 10) || 0;
-  if (value >= 60) {
-    return "#22C55E"; // hijau = kelembapan baik
-  }
-  if (value >= 40) {
-    return "#FACC15"; // kuning = perlu perhatian
-  }
-  return "#EF4444"; // merah = terlalu kering
+// =========================================================
+// TINGKAT NDVI & KELEMBAPAN
+// =========================================================
+//
+// Satu sumber kebenaran untuk ambang batas warna, dipakai di:
+// - MapSection (mewarnai blok sesuai layer NDVI/Kelembapan aktif)
+// - Legend (keterangan warna)
+// - AreaDetail (indikator + label level di panel detail area)
+//
+// Ambang batas mengikuti kategori di infografis GeoFarm GIS:
+// NDVI      : < 0.30 Rendah, 0.30-0.59 Sedang, >= 0.60 Baik
+// Kelembapan: < 40%  Kering, 40-59%   Sedang, >= 60%  Baik
+// =========================================================
+
+export const ndviLevel = (ndvi) => {
+  const value = Number(ndvi) || 0;
+
+  if (value >= 0.6) return { label: "Baik", color: "#22C55E" };
+  if (value >= 0.3) return { label: "Sedang", color: "#FACC15" };
+  return { label: "Rendah", color: "#EF4444" };
 };
+
+export const ndviColor = (ndvi) => ndviLevel(ndvi).color;
+
+export const moistureLevel = (moistureStr) => {
+  const value = parseInt(moistureStr, 10) || 0;
+
+  if (value >= 60) return { label: "Baik", color: "#22C55E" };
+  if (value >= 40) return { label: "Sedang", color: "#FACC15" };
+  return { label: "Kering", color: "#EF4444" };
+};
+
+// Warna berdasarkan tingkat kelembapan tanah
+export const moistureColor = (moistureStr) => moistureLevel(moistureStr).color;
 
 // =========================================================
 // FARMLAND -> GEOJSON FEATURE

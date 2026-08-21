@@ -21,6 +21,10 @@ import {
   farmlandToFeature,
   farmlandDefaultView,
   polygonCentroid,
+  ndviColor,
+  ndviLevel,
+  moistureColor,
+  moistureLevel,
 } from "../../utils/geo";
 
 import Legend from "../map/Legend";
@@ -639,6 +643,12 @@ const MapSection = () => {
   // =======================================================
   // STYLE POLYGON PETAK LAHAN (data/farmland.js)
   // =======================================================
+  //
+  // Warna blok menyesuaikan layer peta yang aktif:
+  // - NDVI        -> warna dari nilai NDVI (ndviColor)
+  // - Kelembapan  -> warna dari nilai kelembapan (moistureColor)
+  // - layer lain  -> warna status gabungan (field.color)
+  // =======================================================
 
   const fillOpacityByLayer =
     activeLayer === "NDVI" ||
@@ -646,12 +656,28 @@ const MapSection = () => {
       ? 0.55
       : 0.28;
 
-  const farmlandStyle = (field) => ({
-    color: field.color,
-    weight: 2,
-    fillColor: field.color,
-    fillOpacity: fillOpacityByLayer,
-  });
+  const farmlandFillColor = (field) => {
+    if (activeLayer === "NDVI") {
+      return ndviColor(field.ndvi);
+    }
+
+    if (activeLayer === "Kelembapan") {
+      return moistureColor(field.moisture);
+    }
+
+    return field.color;
+  };
+
+  const farmlandStyle = (field) => {
+    const color = farmlandFillColor(field);
+
+    return {
+      color,
+      weight: 2,
+      fillColor: color,
+      fillOpacity: fillOpacityByLayer,
+    };
+  };
 
   // =======================================================
   // GEOJSON INTERACTION
@@ -851,8 +877,24 @@ const MapSection = () => {
                   <p>Status: {field.status}</p>
                   <p>Komoditas: {field.crop}</p>
                   <p>Luas: {field.area}</p>
-                  <p>NDVI: {field.ndvi}</p>
-                  <p>Kelembapan: {field.moisture}</p>
+                  <p>
+                    NDVI:{" "}
+                    <span
+                      className="font-semibold"
+                      style={{ color: ndviColor(field.ndvi) }}
+                    >
+                      {field.ndvi} ({ndviLevel(field.ndvi).label})
+                    </span>
+                  </p>
+                  <p>
+                    Kelembapan:{" "}
+                    <span
+                      className="font-semibold"
+                      style={{ color: moistureColor(field.moisture) }}
+                    >
+                      {field.moisture} ({moistureLevel(field.moisture).label})
+                    </span>
+                  </p>
                 </div>
               </Popup>
             </Polygon>
