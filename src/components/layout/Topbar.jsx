@@ -10,7 +10,7 @@ import {
 import { useAppState } from "../../context/useAppState";
 
 const pageSubtitle = {
-  Dashboard: "Ringkasan kondisi lahan & sistem",
+  Dashboard: "Pantau kondisi lahan Anda hari ini.",
   Monitoring: "Peta digital, layer & perbandingan waktu",
   Drone: "Status armada & perencanaan misi",
   Analytics: "Tren NDVI & statistik lahan",
@@ -52,7 +52,7 @@ const Topbar = () => {
   };
 
   return (
-    <header className="relative flex h-20 items-center justify-between rounded-2xl border border-slate-200 bg-white px-6 shadow-sm">
+    <header className="relative flex h-20 items-center justify-between bg-white px-6 shadow-sm">
 
       {/* Judul */}
       <div>
