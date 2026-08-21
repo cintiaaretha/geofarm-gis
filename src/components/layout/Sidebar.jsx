@@ -4,10 +4,10 @@ import {
   Plane,
   BarChart3,
   Settings as SettingsIcon,
-  Sprout,
 } from "lucide-react";
 
 import { useAppState } from "../../context/useAppState";
+import geofarmLogo from "../../assets/geofarm-logo.png";
 
 const menus = [
   { title: "Dashboard", icon: <LayoutDashboard size={20} /> },
@@ -25,9 +25,11 @@ const Sidebar = () => {
 
       {/* Logo */}
       <div className="flex items-center gap-3 border-b border-slate-200 p-6">
-        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-green-600 text-white">
-          <Sprout size={26} />
-        </div>
+        <img
+          src={geofarmLogo}
+          alt="GeoFarm GIS"
+          className="h-12 w-12 object-contain"
+        />
 
         <div>
           <h1 className="text-xl font-bold text-slate-800">
