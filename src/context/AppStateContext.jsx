@@ -1,7 +1,11 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 
 import { AppStateContext } from "./appStateContext.js";
-import { sampleFarmland } from "../data/farmlandData.js";
+import { farmland as defaultFarmland } from "../data/farmland.js";
+import {
+  periods as historyPeriods,
+  buildFarmlandForPeriod,
+} from "../data/farmlandHistory.js";
 
 export const AppStateProvider = ({ children }) => {
   // =========================================================
@@ -28,16 +32,13 @@ export const AppStateProvider = ({ children }) => {
   // PERIODE MONITORING
   //
   // Dipakai PeriodSelector untuk membandingkan data
-  // antar rentang waktu.
+  // antar rentang waktu, sesuai snapshot di
+  // data/farmlandHistory.js.
   // =========================================================
 
-  const [periods] = useState([
-    { id: "7d", label: "7 Hari Terakhir", date: "21 Agu 2026" },
-    { id: "30d", label: "30 Hari Terakhir", date: "21 Agu 2026" },
-    { id: "3m", label: "3 Bulan Terakhir", date: "21 Agu 2026" },
-  ]);
+  const [periods] = useState(historyPeriods);
 
-  const [activePeriod, setActivePeriod] = useState("7d");
+  const [activePeriod, setActivePeriod] = useState("now");
 
   // =========================================================
   // AREA LAHAN TERPILIH
@@ -76,7 +77,24 @@ export const AppStateProvider = ({ children }) => {
   // =========================================================
 
   const [farmland, setFarmland] =
-    useState(sampleFarmland);
+    useState(defaultFarmland);
+
+  // =========================================================
+  // FARMLAND SESUAI PERIODE AKTIF
+  // =========================================================
+  //
+  // Menggabungkan `farmland` (data dasar / hasil pemrosesan)
+  // dengan delta NDVI & kelembapan dari data/farmlandHistory.js
+  // sesuai periode yang dipilih di PeriodSelector.
+  //
+  // Inilah yang dipakai di seluruh app (peta, statistik, chart)
+  // supaya semua ikut berubah saat periode diganti.
+  // =========================================================
+
+  const farmlandForPeriod = useMemo(
+    () => buildFarmlandForPeriod(farmland, activePeriod),
+    [farmland, activePeriod]
+  );
 
   // =========================================================
   // STATUS DRONE
@@ -347,8 +365,13 @@ export const AppStateProvider = ({ children }) => {
     // -------------------------------------------------------
     // DATA LAHAN
     // -------------------------------------------------------
+    //
+    // `farmland` yang diekspos ke seluruh app sudah disesuaikan
+    // dengan periode aktif (lihat farmlandForPeriod di atas).
+    // `setFarmland` tetap mengubah data dasar (periode "now").
+    // -------------------------------------------------------
 
-    farmland,
+    farmland: farmlandForPeriod,
     setFarmland,
 
     // -------------------------------------------------------
