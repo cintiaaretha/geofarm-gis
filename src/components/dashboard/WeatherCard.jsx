@@ -13,7 +13,7 @@ const WeatherCard = () => {
           </h2>
 
           <p className="text-sm text-slate-500">
-            Malang, Jawa Timur
+            Indramayu, Jawa Barat
           </p>
         </div>
       </div>
