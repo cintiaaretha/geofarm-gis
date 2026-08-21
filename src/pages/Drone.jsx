@@ -206,18 +206,7 @@ const Drone = () => {
           </p>
         </div>
 
-        <div className="mb-5 rounded-xl border border-green-100 bg-green-50 p-4">
-          <p className="text-xs font-semibold uppercase tracking-wide text-green-600">Alur Pemrosesan</p>
-          <div className="mt-2 flex flex-wrap items-center gap-2 text-sm font-medium text-green-800">
-            <span>Drone</span>
-            <span className="text-green-400">→</span>
-            <span>Edge Computing</span>
-            <span className="text-green-400">→</span>
-            <span>Orthomosaic</span>
-            <span className="text-green-400">→</span>
-            <span>GIS Map</span>
-          </div>
-        </div>
+        
 
         {/* UPLOAD TIFF */}
         <div>
